@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Purple Page</title>
+    <style>
+        body {
+            background-color: #C77DFF;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .button-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .center-button {
+            background-color: white;
+            color: #C77DFF;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .center-button:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button-container button {
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            outline: none;
+        }
+
+        .button-container button img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        
+        /* Hover effect */
+        .button-container button:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Click effect - zoom in */
+        .button-container button:active {
+            transform: scale(1.15);
+        }
+        
+        /* Hidden state for button */
+        .button-hidden {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0);
+            transition: all 0.5s ease;
+        }
+        
+        /* Growing image styles */
+        .growing-image {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            opacity: 0;
+        }
+        
+        /* No CSS animation - we'll use JavaScript for frame jumps */
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="button-container">
+            <button id="myButton">
+                <img src="https://drive.google.com/file/d/1EbQzZ960bGC6wId3u8_SheJBNvZblJKK/view?usp=sharing" alt="Button">
+            </button>
+        </div>
+        
+        <!-- Growing image (initially hidden) -->
+        <img id="growingImage" class="growing-image" src="https://drive.google.com/file/d/1LjpIhLnm-ulqn6PIekM6vP5oZ8NBWdCc/view?usp=drive_link" alt="Growing Image" style="display: none;">
+        
+    </div>
+    
+    <script>
+        let clickCount = 0;
+        
+        // Create audio context for generated sounds
+        let audioContext;
+        
+        // Initialize audio context on first user interaction
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        // Function to create a growing sound effect
+        function playGrowingSound() {
+            initAudioContext();
+            
+            const duration = 2.7; // Total duration to match animation
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            // Connect oscillator to gain to speakers
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Create a sweeping frequency effect
+            oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + duration);
+            
+            // Create volume envelope (fade in and out)
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + duration - 0.2);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+            
+            // Use a triangle wave for a softer sound
+            oscillator.type = 'triangle';
+            
+            // Start and stop the sound
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        // Function to create button click sound
+        function playClickSound() {
+            initAudioContext();
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Quick click sound
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.type = 'square';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+        
+        document.getElementById('myButton').addEventListener('click', function() {
+            clickCount++;
+            
+            // Play click sound
+            playClickSound();
+            
+            console.log('Button clicked ' + clickCount + ' times');
+            
+            // After 5 clicks, hide button and show growing image
+            if (clickCount >= 5) {
+                hideButtonAndShowImage();
+            }
+        });
+        
+        function hideButtonAndShowImage() {
+            const buttonContainer = document.querySelector('.button-container');
+            const growingImage = document.getElementById('growingImage');
+            
+            // Hide the button with fade out effect
+            buttonContainer.classList.add('button-hidden');
+            
+            // After button disappears, show and animate the image
+            setTimeout(() => {
+                growingImage.style.display = 'block';
+                
+                // Start playing the growing sound
+                playGrowingSound();
+                
+                // Start the frame-by-frame animation
+                startFrameAnimation(growingImage);
+                
+            }, 500); // Wait for button to fade out
+        }
+        
+        function startFrameAnimation(image) {
+            // Define the frames (scale and rotation values)
+            const frames = [
+                { scale: 0.1, rotation: 0 },
+                { scale: 0.2, rotation: 45 },
+                { scale: 0.35, rotation: 90 },
+                { scale: 0.5, rotation: 135 },
+                { scale: 0.7, rotation: 180 },
+                { scale: 0.9, rotation: 225 },
+                { scale: 1.1, rotation: 270 },
+                { scale: 1.3, rotation: 315 },
+                { scale: 1.5, rotation: 360 }
+            ];
+            
+            let currentFrame = 0;
+            
+            function showNextFrame() {
+                if (currentFrame < frames.length) {
+                    const frame = frames[currentFrame];
+                    
+                    // Apply the transformation instantly (no transition)
+                    image.style.transform = `translate(-50%, -50%) scale(${frame.scale}) rotate(${frame.rotation}deg)`;
+                    image.style.opacity = '1';
+                    
+                    currentFrame++;
+                    
+                    // Jump to next frame after a delay (adjust timing here)
+                    setTimeout(showNextFrame, 300); // 300ms between frames
+                } else {
+                    console.log('Frame animation completed!');
+                }
+            }
+            
+            // Start the frame animation
+            showNextFrame();
+        }
+        
+        // Add touch support for mobile devices
+        document.getElementById('myButton').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            // Don't increment counter on touch start, only on click
+        });
+    </script>
+</body>
+</html>
