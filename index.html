@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Purple Page</title>
     <style>
         body {
@@ -11,11 +11,15 @@
             padding: 20px;
             font-family: Arial, sans-serif;
             color: white;
+            touch-action: manipulation; /* Prevent browser handling of touch gestures */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
         
         .container {
             max-width: 800px;
             margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
         }
         
         h1 {
@@ -33,6 +37,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            z-index: 10;
         }
         
         .center-button {
@@ -45,6 +50,7 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
+            touch-action: manipulation;
         }
         
         .center-button:hover {
@@ -60,17 +66,21 @@
             cursor: pointer;
             transition: transform 0.15s ease;
             outline: none;
+            touch-action: manipulation;
         }
 
         .button-container button img {
             display: block;
             width: 100%;
             height: auto;
+            max-width: 200px; /* Limit size on mobile */
         }
         
-        /* Hover effect */
-        .button-container button:hover {
-            transform: scale(1.05);
+        /* Hover effect - only apply on non-touch devices */
+        @media (hover: hover) {
+            .button-container button:hover {
+                transform: scale(1.05);
+            }
         }
         
         /* Click effect - zoom in */
@@ -83,6 +93,7 @@
             opacity: 0;
             transform: translate(-50%, -50%) scale(0);
             transition: all 0.5s ease;
+            pointer-events: none; /* Prevent interaction when hidden */
         }
         
         /* Growing image styles */
@@ -93,126 +104,203 @@
             transform: translate(-50%, -50%);
             z-index: 1000;
             opacity: 0;
+            max-width: 90vw; /* Limit to viewport width */
+            max-height: 90vh; /* Limit to viewport height */
+            display: none; /* Added initial display none */
+            transition: transform 0.3s ease, opacity 0.3s ease; /* Added transition */
         }
         
-        /* No CSS animation - we'll use JavaScript for frame jumps */
+        /* Instructions for mobile users */
+        .mobile-instruction {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-instruction {
+                display: block;
+            }
+            
+            .button-container button img {
+                max-width: 150px;
+            }
+            
+            .center-button {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         
+        <p class="mobile-instruction">push again and again and again</p>
+        
         <div class="button-container">
             <button id="myButton">
-                <img src="puush.png" alt="Button">
+                <!-- Using a placeholder image since Google Drive links don't work directly -->
+                <img src="puush.png" alt="Tap Button">
             </button>
         </div>
         
         <!-- Growing image (initially hidden) -->
-        <img id="growingImage" class="growing-image" src="your-image.png" alt="Growing Image" style="display: none;">
+        <img id="growingImage" class="growing-image" src="your-image.png" alt="Growing Image">
         
     </div>
     
     <script>
         let clickCount = 0;
-        
-        // Create audio context for generated sounds
         let audioContext;
+        let audioInitialized = false;
         
         // Initialize audio context on first user interaction
         function initAudioContext() {
             if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error("AudioContext not supported:", e);
+                    return false;
+                }
             }
+            audioInitialized = true;
+            return true;
         }
         
         // Function to create a growing sound effect
         function playGrowingSound() {
-            initAudioContext();
+            if (!audioInitialized) return;
             
-            const duration = 2.7; // Total duration to match animation
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            // Connect oscillator to gain to speakers
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Create a sweeping frequency effect
-            oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + duration);
-            
-            // Create volume envelope (fade in and out)
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
-            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + duration - 0.2);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
-            
-            // Use a triangle wave for a softer sound
-            oscillator.type = 'triangle';
-            
-            // Start and stop the sound
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration);
+            try {
+                const duration = 2.7;
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + duration);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + duration - 0.2);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+                
+                oscillator.type = 'triangle';
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                console.error("Error playing growing sound:", e);
+            }
         }
         
         // Function to create button click sound
         function playClickSound() {
-            initAudioContext();
+            if (!audioInitialized) return;
             
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Quick click sound
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            
-            oscillator.type = 'square';
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.type = 'square';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                console.error("Error playing click sound:", e);
+            }
         }
         
-        document.getElementById('myButton').addEventListener('click', function() {
+        // Handle button interaction
+        function handleButtonInteraction() {
+            // Initialize audio on first interaction
+            if (!audioInitialized) {
+                audioInitialized = initAudioContext();
+            }
+            
             clickCount++;
             
             // Play click sound
-            playClickSound();
+            if (audioInitialized) {
+                playClickSound();
+            }
             
-            console.log('Button clicked ' + clickCount + ' times');
+            console.log('Button tapped ' + clickCount + ' times');
+            
+            // Update button text on mobile
+            if (window.innerWidth <= 768) {
+                const button = document.getElementById('myButton');
+                const tapsLeft = 5 - clickCount;
+                if (tapsLeft > 0) {
+                    button.querySelector('img').alt = `Tap ${tapsLeft} more times`;
+                }
+            }
             
             // After 5 clicks, hide button and show growing image
             if (clickCount >= 5) {
                 hideButtonAndShowImage();
             }
+        }
+        
+        // Set up event listeners
+        const button = document.getElementById('myButton');
+        
+        // Mouse events
+        button.addEventListener('click', handleButtonInteraction);
+        
+        // Touch events - with proper handling
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // Prevent default touch behavior
+            handleButtonInteraction();
+            
+            // Add visual feedback for touch
+            this.style.transform = 'scale(1.15)';
+        });
+        
+        button.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.style.transform = 'scale(1)';
+        });
+        
+        button.addEventListener('touchcancel', function(e) {
+            this.style.transform = 'scale(1)';
         });
         
         function hideButtonAndShowImage() {
             const buttonContainer = document.querySelector('.button-container');
             const growingImage = document.getElementById('growingImage');
             
-            // Hide the button with fade out effect
             buttonContainer.classList.add('button-hidden');
             
-            // After button disappears, show and animate the image
             setTimeout(() => {
                 growingImage.style.display = 'block';
                 
-                // Start playing the growing sound
-                playGrowingSound();
+                // Force reflow before starting animation
+                growingImage.offsetHeight;
                 
-                // Start the frame-by-frame animation
+                if (audioInitialized) {
+                    playGrowingSound();
+                }
+                
                 startFrameAnimation(growingImage);
                 
-            }, 500); // Wait for button to fade out
+            }, 500);
         }
         
         function startFrameAnimation(image) {
-            // Define the frames (scale and rotation values)
             const frames = [
                 { scale: 0.1, rotation: 0 },
                 { scale: 0.2, rotation: 45 },
@@ -231,29 +319,28 @@
                 if (currentFrame < frames.length) {
                     const frame = frames[currentFrame];
                     
-                    // Apply the transformation instantly (no transition)
                     image.style.transform = `translate(-50%, -50%) scale(${frame.scale}) rotate(${frame.rotation}deg)`;
                     image.style.opacity = '1';
                     
                     currentFrame++;
                     
-                    // Jump to next frame after a delay (adjust timing here)
-                    setTimeout(showNextFrame, 300); // 300ms between frames
-                } else {
-                    console.log('Frame animation completed!');
+                    setTimeout(showNextFrame, 300);
                 }
             }
             
-            // Start the frame animation
             showNextFrame();
         }
         
-        // Add touch support for mobile devices
-        document.getElementById('myButton').addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            // Don't increment counter on touch start, only on click
-        });
+        // Prevent zooming on double-tap
+        let lastTap = 0;
+        document.addEventListener('touchend', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                e.preventDefault();
+            }
+            lastTap = currentTime;
+        }, false);
     </script>
 </body>
 </html>
-
